@@ -58,6 +58,213 @@ class ChatRequest(BaseModel):
     message: str
     context: Optional[dict] = None
 
+class GeneratePlanRequest(BaseModel):
+    origin: str = "Mumbai"
+    destination: str = "Delhi"
+    weight_tons: float = 20.0
+    commodity: str = "electronics"
+    fragility: str = "medium"
+    deadline_days: int = 14
+    budget_inr: Optional[float] = None
+    priority: str = "cost"  # cost / speed / reliability / sustainability
+    urgency: str = "standard"
+    temp_sensitive: bool = False
+    value_inr: float = 5000000
+    distance_km: float = 1400
+
+class RecomputePlanRequest(BaseModel):
+    origin: str
+    destination: str
+    weight_tons: float
+    commodity: str
+    fragility: str
+    deadline_days: int
+    priority: str
+    urgency: str = "standard"
+    budget_inr: Optional[float] = None
+    temp_sensitive: bool = False
+    value_inr: float = 5000000
+    distance_km: float = 1400
+
+
+# ─── Unified Plan Generation (Orchestrates ALL brains) ───────────────
+
+CARBON_FACTORS = {"road": 80, "rail": 25, "ocean": 12, "air": 800}
+SPEED_KM_PER_DAY = {"road": 500, "rail": 600, "ocean": 450, "air": 8000}
+COST_PER_TON_KM = {"road": 3.5, "rail": 1.8, "ocean": 0.8, "air": 25.0}
+
+@router.post("/generate-plan")
+async def generate_plan(req: GeneratePlanRequest):
+    """Unified endpoint — orchestrates all 4 AI brains behind the scenes."""
+    selector = get_mode_selector()
+    analyst = get_carrier_analyst()
+    predictor = get_risk_predictor()
+    optimizer = get_optimizer()
+
+    shipment = req.model_dump()
+    distance = req.distance_km if req.distance_km > 100 else 1400
+
+    # ── Brain 0: Mode Selection ──
+    mode_result = selector.predict(shipment, ["road", "rail", "ocean", "air"])
+
+    # ── Brain 1: Carrier Scoring ──
+    carrier_result = analyst.score_for_lane(origin=req.origin, destination=req.destination)
+
+    # ── Brain 2: Risk per mode ──
+    modes = ["road", "rail", "ocean", "air"]
+    risk_by_mode = {}
+    for mode in modes:
+        s = {**shipment, "mode_used": mode}
+        risk_by_mode[mode] = predictor.predict_risk(s)
+
+    # ── Build mode comparison table ──
+    mode_comparison = []
+    for mode in modes:
+        prob = mode_result.get("mode_probabilities", {}).get(mode, 0)
+        risk = risk_by_mode.get(mode, {})
+        transit_days = round(distance / SPEED_KM_PER_DAY.get(mode, 500), 1)
+        est_cost = round(COST_PER_TON_KM.get(mode, 3) * req.weight_tons * distance)
+        carbon_kg = round(CARBON_FACTORS.get(mode, 80) * req.weight_tons * distance / 1000, 1)
+
+        # Get best carrier for this mode
+        best_carrier = None
+        carriers_in_mode = carrier_result.get("by_mode", {}).get(mode, [])
+        if carriers_in_mode:
+            best_carrier = carriers_in_mode[0]
+
+        # Compute composite score based on user priority
+        priority_weights = {
+            "cost": {"cost": 0.50, "risk": 0.15, "carbon": 0.10, "speed": 0.25},
+            "speed": {"cost": 0.15, "risk": 0.15, "carbon": 0.05, "speed": 0.65},
+            "reliability": {"cost": 0.10, "risk": 0.55, "carbon": 0.10, "speed": 0.25},
+            "sustainability": {"cost": 0.15, "risk": 0.15, "carbon": 0.55, "speed": 0.15},
+        }.get(req.priority, {"cost": 0.35, "risk": 0.25, "carbon": 0.20, "speed": 0.20})
+
+        cost_score = max(0, 100 - (est_cost / (req.weight_tons * distance) * 10))
+        speed_score = max(0, 100 - transit_days * 5)
+        risk_score_val = risk.get("risk_score", 50)
+        risk_quality = 100 - risk_score_val
+        carbon_score = max(0, 100 - carbon_kg / (req.weight_tons * 0.5))
+
+        composite = round(
+            priority_weights["cost"] * cost_score +
+            priority_weights["risk"] * risk_quality +
+            priority_weights["carbon"] * carbon_score +
+            priority_weights["speed"] * speed_score
+        , 1)
+
+        mode_comparison.append({
+            "mode": mode,
+            "ai_confidence": round(prob * 100, 1),
+            "estimated_cost_inr": est_cost,
+            "transit_days": transit_days,
+            "delay_probability": risk.get("delay_probability", 0),
+            "risk_score": risk_score_val,
+            "risk_level": risk.get("risk_level", "medium"),
+            "carbon_kg": carbon_kg,
+            "reliability_score": round(100 - risk_score_val, 1),
+            "composite_score": composite,
+            "best_carrier": best_carrier.get("name") if best_carrier else "N/A",
+            "best_carrier_id": best_carrier.get("id") if best_carrier else None,
+            "best_carrier_score": best_carrier.get("topsis_score") if best_carrier else None,
+            "risk_alerts": risk.get("risk_alerts", []),
+            "mitigation": risk.get("mitigation_suggestions", []),
+        })
+
+    # Sort by composite score to find recommendation
+    mode_comparison.sort(key=lambda m: m["composite_score"], reverse=True)
+    recommended = mode_comparison[0]
+
+    # ── Build carrier alternatives for recommended mode ──
+    rec_mode = recommended["mode"]
+    carrier_alternatives = []
+    for c in carrier_result.get("by_mode", {}).get(rec_mode, [])[:8]:
+        transit_days = round(distance / SPEED_KM_PER_DAY.get(rec_mode, 500), 1)
+        est_cost = round(COST_PER_TON_KM.get(rec_mode, 3) * req.weight_tons * distance * (1 + (100 - c.get("topsis_score", 50)) / 200))
+        carrier_alternatives.append({
+            "name": c.get("name"),
+            "id": c.get("id"),
+            "score": c.get("topsis_score"),
+            "estimated_cost_inr": est_cost,
+            "transit_days": transit_days,
+            "risk_score": risk_by_mode.get(rec_mode, {}).get("risk_score", 50),
+            "reliability": round(c.get("otd_rate", c.get("schedule_reliability", 0.8)) * 100, 1),
+            "capacity_tons": c.get("fleet_size", c.get("wagon_fleet", 100)),
+        })
+
+    # ── Why this recommendation? ──
+    reasons = []
+    if req.priority == "cost":
+        reasons.append(f"{rec_mode.capitalize()} freight offers the lowest cost at ₹{recommended['estimated_cost_inr']:,} for this route.")
+    elif req.priority == "speed":
+        reasons.append(f"{rec_mode.capitalize()} provides the fastest transit at {recommended['transit_days']} days.")
+    elif req.priority == "reliability":
+        reasons.append(f"{rec_mode.capitalize()} has a reliability score of {recommended['reliability_score']}% with lowest delay risk.")
+    elif req.priority == "sustainability":
+        reasons.append(f"{rec_mode.capitalize()} produces only {recommended['carbon_kg']} kg CO₂, minimizing environmental impact.")
+
+    reasons.append(f"The AI engine has {recommended['ai_confidence']}% confidence in this recommendation based on historical data analysis.")
+    if recommended["best_carrier"] and recommended["best_carrier"] != "N/A":
+        score_text = f" with a performance score of {recommended['best_carrier_score']}/100" if recommended.get("best_carrier_score") else ""
+        reasons.append(f"{recommended['best_carrier']} is the top-ranked carrier for this mode{score_text}.")
+    if recommended["risk_level"] == "low":
+        reasons.append("This route has low delay risk based on historical performance data.")
+    elif recommended["risk_level"] == "high":
+        reasons.append(f"Note: This mode has elevated risk ({recommended['risk_score']}/100). Consider the alternatives below.")
+
+    # ── Why not other modes? ──
+    why_not_others = []
+    for m in mode_comparison[1:]:
+        if m["composite_score"] < recommended["composite_score"]:
+            diff_pct = round((recommended["composite_score"] - m["composite_score"]) / recommended["composite_score"] * 100, 1)
+            why_not_others.append({
+                "mode": m["mode"],
+                "reason": f"Scores {diff_pct}% lower overall. " + (
+                    f"Cost is ₹{m['estimated_cost_inr']:,} ({'+' if m['estimated_cost_inr'] > recommended['estimated_cost_inr'] else ''}{round((m['estimated_cost_inr'] - recommended['estimated_cost_inr']) / recommended['estimated_cost_inr'] * 100)}% vs recommended)."
+                    if m['estimated_cost_inr'] != recommended['estimated_cost_inr'] else
+                    f"Transit takes {m['transit_days']} days vs {recommended['transit_days']} days."
+                ),
+                "composite_score": m["composite_score"],
+            })
+
+    return {
+        "shipment": {
+            "origin": req.origin,
+            "destination": req.destination,
+            "weight_tons": req.weight_tons,
+            "commodity": req.commodity,
+            "priority": req.priority,
+            "deadline_days": req.deadline_days,
+            "fragility": req.fragility,
+        },
+        "mode_comparison": mode_comparison,
+        "recommendation": {
+            "mode": rec_mode,
+            "carrier": recommended["best_carrier"],
+            "carrier_id": recommended["best_carrier_id"],
+            "estimated_cost_inr": recommended["estimated_cost_inr"],
+            "transit_days": recommended["transit_days"],
+            "risk_level": recommended["risk_level"],
+            "risk_score": recommended["risk_score"],
+            "carbon_kg": recommended["carbon_kg"],
+            "reliability_score": recommended["reliability_score"],
+            "composite_score": recommended["composite_score"],
+            "ai_confidence": recommended["ai_confidence"],
+        },
+        "carrier_alternatives": carrier_alternatives,
+        "explanation": {
+            "why_recommended": reasons,
+            "why_not_others": why_not_others,
+        },
+    }
+
+
+@router.post("/recompute-plan")
+async def recompute_plan(req: RecomputePlanRequest):
+    """Recompute plan with changed parameters (what-if scenarios)."""
+    plan_req = GeneratePlanRequest(**req.model_dump())
+    return await generate_plan(plan_req)
+
 
 # ─── Mode Selection (Brain 0) ────────────────────────────────────────────
 
