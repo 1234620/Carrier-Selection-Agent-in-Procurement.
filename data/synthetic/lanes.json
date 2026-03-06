@@ -1,0 +1,651 @@
+[
+  {
+    "id": "LANE-001",
+    "origin": "Mumbai",
+    "destination": "Delhi",
+    "distance_km": 1153,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "auto_parts",
+      "agri_products",
+      "chemicals"
+    ]
+  },
+  {
+    "id": "LANE-002",
+    "origin": "Delhi",
+    "destination": "Bangalore",
+    "distance_km": 1750,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "fmcg",
+      "auto_parts",
+      "steel"
+    ]
+  },
+  {
+    "id": "LANE-003",
+    "origin": "Chennai",
+    "destination": "Mumbai",
+    "distance_km": 1033,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "pharmaceuticals",
+      "chemicals",
+      "agri_products"
+    ]
+  },
+  {
+    "id": "LANE-004",
+    "origin": "Kolkata",
+    "destination": "Delhi",
+    "distance_km": 1318,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "agri_products",
+      "fmcg"
+    ]
+  },
+  {
+    "id": "LANE-005",
+    "origin": "Ahmedabad",
+    "destination": "Mumbai",
+    "distance_km": 440,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "steel",
+      "fmcg",
+      "auto_parts",
+      "chemicals"
+    ]
+  },
+  {
+    "id": "LANE-006",
+    "origin": "Pune",
+    "destination": "Hyderabad",
+    "distance_km": 506,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "pharmaceuticals",
+      "fmcg"
+    ]
+  },
+  {
+    "id": "LANE-007",
+    "origin": "Mumbai",
+    "destination": "Nagpur",
+    "distance_km": 688,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "chemicals",
+      "fmcg"
+    ]
+  },
+  {
+    "id": "LANE-008",
+    "origin": "Delhi",
+    "destination": "Jaipur",
+    "distance_km": 238,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "pharmaceuticals",
+      "electronics",
+      "textiles",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-009",
+    "origin": "Chennai",
+    "destination": "Bangalore",
+    "distance_km": 290,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "chemicals",
+      "steel",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-010",
+    "origin": "Hyderabad",
+    "destination": "Visakhapatnam",
+    "distance_km": 503,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "electronics",
+      "chemicals",
+      "textiles"
+    ]
+  },
+  {
+    "id": "LANE-011",
+    "origin": "Delhi",
+    "destination": "Ludhiana",
+    "distance_km": 272,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "textiles",
+      "pharmaceuticals",
+      "fmcg",
+      "electronics"
+    ]
+  },
+  {
+    "id": "LANE-012",
+    "origin": "Mumbai",
+    "destination": "Ahmedabad",
+    "distance_km": 440,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "pharmaceuticals",
+      "textiles",
+      "steel",
+      "chemicals"
+    ]
+  },
+  {
+    "id": "LANE-013",
+    "origin": "Bangalore",
+    "destination": "Coimbatore",
+    "distance_km": 228,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "auto_parts",
+      "textiles",
+      "chemicals"
+    ]
+  },
+  {
+    "id": "LANE-014",
+    "origin": "Kolkata",
+    "destination": "Guwahati",
+    "distance_km": 524,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "steel",
+      "agri_products",
+      "chemicals"
+    ]
+  },
+  {
+    "id": "LANE-015",
+    "origin": "Delhi",
+    "destination": "Indore",
+    "distance_km": 677,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "electronics",
+      "pharmaceuticals",
+      "textiles",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-016",
+    "origin": "Chennai",
+    "destination": "Hyderabad",
+    "distance_km": 515,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "auto_parts",
+      "steel",
+      "electronics"
+    ]
+  },
+  {
+    "id": "LANE-017",
+    "origin": "Mumbai",
+    "destination": "Pune",
+    "distance_km": 120,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "electronics",
+      "steel"
+    ]
+  },
+  {
+    "id": "LANE-018",
+    "origin": "Nagpur",
+    "destination": "Kolkata",
+    "distance_km": 970,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "chemicals",
+      "pharmaceuticals",
+      "textiles"
+    ]
+  },
+  {
+    "id": "LANE-019",
+    "origin": "Jaipur",
+    "destination": "Ahmedabad",
+    "distance_km": 540,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "auto_parts",
+      "chemicals"
+    ]
+  },
+  {
+    "id": "LANE-020",
+    "origin": "Ludhiana",
+    "destination": "Delhi",
+    "distance_km": 272,
+    "modes_available": [
+      "road",
+      "rail"
+    ],
+    "route_type": "domestic",
+    "commodity_types": [
+      "steel",
+      "pharmaceuticals"
+    ]
+  },
+  {
+    "id": "LANE-021",
+    "origin": "Mumbai",
+    "destination": "Dubai",
+    "distance_km": 1935,
+    "modes_available": [
+      "ocean",
+      "air",
+      "road"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "gems_jewelry",
+      "electronics",
+      "textiles"
+    ]
+  },
+  {
+    "id": "LANE-022",
+    "origin": "Mumbai",
+    "destination": "Rotterdam",
+    "distance_km": 6877,
+    "modes_available": [
+      "ocean",
+      "air"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "machinery",
+      "chemicals",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-023",
+    "origin": "Chennai",
+    "destination": "Singapore",
+    "distance_km": 2902,
+    "modes_available": [
+      "ocean",
+      "air",
+      "road"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "gems_jewelry",
+      "chemicals",
+      "textiles",
+      "electronics"
+    ]
+  },
+  {
+    "id": "LANE-024",
+    "origin": "Mumbai",
+    "destination": "Shanghai",
+    "distance_km": 5033,
+    "modes_available": [
+      "ocean",
+      "air"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "textiles",
+      "pharmaceuticals"
+    ]
+  },
+  {
+    "id": "LANE-025",
+    "origin": "Kolkata",
+    "destination": "Singapore",
+    "distance_km": 2891,
+    "modes_available": [
+      "ocean",
+      "air",
+      "road"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "textiles",
+      "electronics",
+      "machinery",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-026",
+    "origin": "Mumbai",
+    "destination": "Hamburg",
+    "distance_km": 6532,
+    "modes_available": [
+      "ocean",
+      "air"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "machinery",
+      "textiles",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-027",
+    "origin": "Chennai",
+    "destination": "Dubai",
+    "distance_km": 2944,
+    "modes_available": [
+      "ocean",
+      "air",
+      "road"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "chemicals",
+      "electronics",
+      "auto_parts",
+      "pharmaceuticals"
+    ]
+  },
+  {
+    "id": "LANE-028",
+    "origin": "Visakhapatnam",
+    "destination": "Shanghai",
+    "distance_km": 4129,
+    "modes_available": [
+      "ocean",
+      "air"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "electronics",
+      "machinery",
+      "auto_parts"
+    ]
+  },
+  {
+    "id": "LANE-029",
+    "origin": "Mumbai",
+    "destination": "Singapore",
+    "distance_km": 3904,
+    "modes_available": [
+      "ocean",
+      "air",
+      "road"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "chemicals",
+      "gems_jewelry"
+    ]
+  },
+  {
+    "id": "LANE-030",
+    "origin": "Chennai",
+    "destination": "Rotterdam",
+    "distance_km": 7895,
+    "modes_available": [
+      "ocean",
+      "air"
+    ],
+    "route_type": "international",
+    "commodity_types": [
+      "machinery",
+      "gems_jewelry",
+      "pharmaceuticals",
+      "textiles"
+    ]
+  },
+  {
+    "id": "LANE-031",
+    "origin": "Mumbai",
+    "destination": "Delhi",
+    "distance_km": 1153,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "steel",
+      "fertilizer",
+      "cement"
+    ]
+  },
+  {
+    "id": "LANE-032",
+    "origin": "Delhi",
+    "destination": "Kolkata",
+    "distance_km": 1318,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "cement",
+      "fertilizer",
+      "steel",
+      "automobiles"
+    ]
+  },
+  {
+    "id": "LANE-033",
+    "origin": "Chennai",
+    "destination": "Delhi",
+    "distance_km": 1768,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "cement",
+      "fertilizer",
+      "food_grains",
+      "automobiles"
+    ]
+  },
+  {
+    "id": "LANE-034",
+    "origin": "Ahmedabad",
+    "destination": "Delhi",
+    "distance_km": 777,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "fertilizer",
+      "cement",
+      "containers"
+    ]
+  },
+  {
+    "id": "LANE-035",
+    "origin": "Mumbai",
+    "destination": "Nagpur",
+    "distance_km": 688,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "coal",
+      "food_grains"
+    ]
+  },
+  {
+    "id": "LANE-036",
+    "origin": "Ludhiana",
+    "destination": "Mumbai",
+    "distance_km": 1349,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "food_grains",
+      "fertilizer",
+      "coal",
+      "cement"
+    ]
+  },
+  {
+    "id": "LANE-037",
+    "origin": "Jaipur",
+    "destination": "Mumbai",
+    "distance_km": 921,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "containers",
+      "steel",
+      "cement"
+    ]
+  },
+  {
+    "id": "LANE-038",
+    "origin": "Kolkata",
+    "destination": "Mumbai",
+    "distance_km": 1655,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "coal",
+      "food_grains",
+      "containers"
+    ]
+  },
+  {
+    "id": "LANE-039",
+    "origin": "Delhi",
+    "destination": "Chennai",
+    "distance_km": 1768,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "fertilizer",
+      "cement",
+      "food_grains",
+      "containers"
+    ]
+  },
+  {
+    "id": "LANE-040",
+    "origin": "Bangalore",
+    "destination": "Delhi",
+    "distance_km": 1750,
+    "modes_available": [
+      "rail",
+      "road"
+    ],
+    "route_type": "dfc_corridor",
+    "commodity_types": [
+      "fertilizer",
+      "coal",
+      "containers"
+    ]
+  }
+]
