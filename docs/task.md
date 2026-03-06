@@ -12,17 +12,19 @@
 - [x] FastAPI endpoints for all core features
 
 ## Phase 2: Intelligence Layer
-- [ ] MILP Optimizer — Cross-modal allocation (Google OR-Tools)
-- [ ] Risk Predictor — LightGBM delay prediction
-- [ ] Rate Forecaster — Prophet time-series
-- [ ] SHAP integration for all models
+- [x] MILP Optimizer — Cross-modal allocation (integrated in Brain 3)
+- [x] Risk Predictor — GradientBoosting delay prediction
+- [x] SHAP integration for mode selector
 
 ## Phase 3: Frontend Dashboard
-- [ ] Bid Upload & Parse screen
-- [ ] Mode Comparison view
-- [ ] Carrier Leaderboard with SHAP explanations
-- [ ] What-If Modal Shift Simulator
-- [ ] Co-Pilot Chat interface
+- [x] Dashboard overview page
+- [x] Mode Selector (Brain 0) page
+- [x] Carrier Rankings (Brain 1) page
+- [x] Risk Analysis (Brain 2) page
+- [x] MILP Optimizer (Brain 3) page
+- [x] What-If Modal Shift Simulator
+- [x] Bid Parser page
+- [x] Co-Pilot Chat interface
 
 ## Phase 4: Polish & Presentation
 - [ ] End-to-end demo flow working
