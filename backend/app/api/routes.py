@@ -30,51 +30,104 @@ COASTAL_CITIES = {
     "Haldia", "Ennore", "Kakinada", "Krishnapatnam", "Dhamra",
     # International port cities
     "Shanghai", "Hamburg", "Dubai", "Singapore", "Rotterdam",
+    "New York", "Los Angeles", "Tokyo", "Sydney", "São Paulo",
+    "Lagos", "Hong Kong", "Colombo", "Karachi", "Jeddah",
+    "Istanbul", "Bangkok",
 }
 
 # Indian domestic cities (comprehensive list)
 INDIAN_CITIES = {
-    # Metros
     "Mumbai", "Delhi", "Chennai", "Kolkata", "Bangalore", "Hyderabad",
-    # Tier-1
     "Ahmedabad", "Pune", "Jaipur", "Lucknow", "Kanpur", "Surat",
     "Nagpur", "Indore", "Bhopal", "Patna", "Vadodara", "Ludhiana",
-    # Tier-2
     "Coimbatore", "Visakhapatnam", "Kochi", "Mangalore", "Mysore",
     "Thiruvananthapuram", "Guwahati", "Chandigarh", "Dehradun", "Ranchi",
     "Raipur", "Bhubaneswar", "Goa", "Amritsar", "Jodhpur", "Udaipur",
     "Varanasi", "Agra", "Rajkot", "Nashik", "Aurangabad", "Hubli",
     "Tiruchirappalli", "Salem", "Madurai", "Jalandhar", "Meerut",
     "Allahabad", "Vijayawada", "Gwalior", "Jammu", "Srinagar",
-    # Port / coastal
     "Kandla", "Mundra", "Tuticorin", "Paradip", "Haldia", "Ennore",
     "Kakinada", "Krishnapatnam", "Porbandar", "Dhamra",
 }
 
 INTERNATIONAL_CITIES = {
     "Shanghai", "Hamburg", "Dubai", "Singapore", "Rotterdam",
+    "London", "New York", "Los Angeles", "Tokyo", "Sydney",
+    "São Paulo", "Lagos", "Nairobi", "Istanbul", "Bangkok",
+    "Hong Kong", "Colombo", "Dhaka", "Karachi", "Jeddah",
 }
+
+# City coordinates for distance calculation
+CITY_COORDINATES = {
+    "Mumbai": (19.076, 72.878), "Delhi": (28.614, 77.209),
+    "Chennai": (13.083, 80.271), "Kolkata": (22.573, 88.364),
+    "Bangalore": (12.972, 77.595), "Hyderabad": (17.385, 78.487),
+    "Ahmedabad": (23.023, 72.571), "Pune": (18.520, 73.857),
+    "Jaipur": (26.912, 75.787), "Lucknow": (26.847, 80.946),
+    "Kanpur": (26.450, 80.332), "Surat": (21.170, 72.831),
+    "Nagpur": (21.146, 79.088), "Indore": (22.720, 75.858),
+    "Bhopal": (23.260, 77.413), "Patna": (25.609, 85.138),
+    "Vadodara": (22.307, 73.181), "Ludhiana": (30.901, 75.857),
+    "Coimbatore": (11.017, 76.956), "Visakhapatnam": (17.687, 83.219),
+    "Kochi": (9.931, 76.267), "Mangalore": (12.914, 74.856),
+    "Mysore": (12.296, 76.639), "Thiruvananthapuram": (8.524, 76.937),
+    "Guwahati": (26.145, 91.736), "Chandigarh": (30.733, 76.779),
+    "Dehradun": (30.317, 78.032), "Ranchi": (23.344, 85.310),
+    "Shanghai": (31.230, 121.474), "Hamburg": (53.551, 9.994),
+    "Dubai": (25.205, 55.271), "Singapore": (1.352, 103.820),
+    "Rotterdam": (51.924, 4.478), "London": (51.507, -0.128),
+    "New York": (40.713, -74.006), "Los Angeles": (34.052, -118.244),
+    "Tokyo": (35.676, 139.650), "Sydney": (-33.869, 151.209),
+    "São Paulo": (-23.551, -46.633), "Lagos": (6.524, 3.379),
+    "Nairobi": (-1.292, 36.822), "Istanbul": (41.008, 28.978),
+    "Bangkok": (13.756, 100.502), "Hong Kong": (22.319, 114.169),
+    "Colombo": (6.927, 79.861), "Dhaka": (23.810, 90.413),
+    "Karachi": (24.861, 67.001), "Jeddah": (21.486, 39.193),
+}
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Calculate great-circle distance between two points (km)."""
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return round(R * 2 * math.asin(math.sqrt(a)))
+
+
+def estimate_distance(origin: str, destination: str) -> float:
+    """Estimate distance using haversine. Road/rail ×1.3, air/ocean ×1.1."""
+    c1 = CITY_COORDINATES.get(origin)
+    c2 = CITY_COORDINATES.get(destination)
+    if c1 and c2:
+        return max(haversine_km(c1[0], c1[1], c2[0], c2[1]), 50)
+    return 1400
 
 
 def get_feasible_modes(origin: str, destination: str) -> list:
     """Determine which transport modes are feasible for a given route.
-    - Road & Rail: Always feasible for domestic; road feasible for some int'l
-    - Air: Always feasible (domestic flights + international)
-    - Ocean: Only if BOTH cities are coastal / port cities
+    - Road & Rail: ONLY for domestic Indian routes
+    - Air: Always feasible
+    - Ocean: If both cities are coastal, or for international routes with at least one coastal city
     """
     both_domestic = origin in INDIAN_CITIES and destination in INDIAN_CITIES
-    has_international = origin in INTERNATIONAL_CITIES or destination in INTERNATIONAL_CITIES
+    is_international = origin in INTERNATIONAL_CITIES or destination in INTERNATIONAL_CITIES
 
-    modes = ["road", "rail", "air"]
+    modes = []
 
-    # Ocean is only feasible if both cities have port/coastal access
+    # Road & Rail: ONLY for domestic routes (no train from Mumbai to London!)
+    if both_domestic and not is_international:
+        modes.extend(["road", "rail"])
+
+    # Air: always available
+    modes.append("air")
+
+    # Ocean: if both cities have port/coastal access
     if origin in COASTAL_CITIES and destination in COASTAL_CITIES:
         modes.append("ocean")
-
-    # For purely international routes, always include ocean if at least one is coastal
-    if has_international and "ocean" not in modes:
-        if origin in COASTAL_CITIES or destination in COASTAL_CITIES:
-            modes.append("ocean")
+    # For international, ocean if at least one is coastal
+    elif is_international and (origin in COASTAL_CITIES or destination in COASTAL_CITIES):
+        modes.append("ocean")
 
     return modes
 
@@ -193,7 +246,9 @@ async def generate_plan(req: GeneratePlanRequest):
     optimizer = get_optimizer()
 
     shipment = req.model_dump()
-    distance = req.distance_km if req.distance_km > 100 else 1400
+    
+    # Calculate real distance between cities instead of relying on frontend default (1400)
+    distance = estimate_distance(req.origin, req.destination)
 
     # ── Geographic Feasibility — determine which modes make sense ──
     feasible_modes = get_feasible_modes(req.origin, req.destination)
@@ -390,7 +445,8 @@ async def mode_details(mode: str, req: ModeDetailRequest):
     if not analyst._loaded:
         analyst.load_data()
 
-    distance = req.distance_km if req.distance_km > 100 else 1400
+    # Calculate real distance using city coordinates
+    distance = estimate_distance(req.origin, req.destination)
     mode_carriers = [c for c in analyst.carriers if c.get("mode") == mode]
 
     if not mode_carriers:

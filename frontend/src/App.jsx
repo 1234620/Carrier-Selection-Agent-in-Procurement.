@@ -4,6 +4,8 @@ import * as api from './api'
 import { Ribbons } from './components/Ribbons'
 import { ModeIcon } from './components/ModeIcons'
 import RouteMap from './components/RouteMap'
+import LoginPage from './components/LoginPage'
+
 
 const MODE_CONFIG = {
   road: { label: 'Road', color: '#C4841D' },
@@ -12,17 +14,20 @@ const MODE_CONFIG = {
   rail: { label: 'Rail', color: '#2D8659' },
 }
 
-const CITIES = [
+const NATIONAL_CITIES = [
   'Mumbai', 'Delhi', 'Chennai', 'Kolkata', 'Bangalore', 'Hyderabad',
   'Ahmedabad', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Surat',
   'Nagpur', 'Indore', 'Bhopal', 'Patna', 'Vadodara', 'Ludhiana',
   'Coimbatore', 'Visakhapatnam', 'Kochi', 'Mangalore', 'Mysore',
   'Thiruvananthapuram', 'Guwahati', 'Chandigarh', 'Dehradun', 'Ranchi',
-  'Raipur', 'Bhubaneswar', 'Goa', 'Amritsar', 'Jodhpur', 'Udaipur',
-  'Varanasi', 'Agra', 'Rajkot', 'Nashik', 'Aurangabad', 'Hubli',
-  'Tiruchirappalli', 'Salem', 'Madurai', 'Jalandhar', 'Meerut',
-  'Allahabad', 'Vijayawada', 'Gwalior', 'Jammu', 'Srinagar',
+]
+
+const INTERNATIONAL_CITIES = [
+  'Mumbai', 'Delhi', 'Chennai', 'Kolkata', 'Bangalore',
   'Shanghai', 'Hamburg', 'Dubai', 'Singapore', 'Rotterdam',
+  'London', 'New York', 'Los Angeles', 'Tokyo', 'Sydney',
+  'São Paulo', 'Lagos', 'Nairobi', 'Istanbul', 'Bangkok',
+  'Hong Kong', 'Colombo', 'Dhaka', 'Karachi', 'Jeddah',
 ]
 
 const COMMODITIES = [
@@ -111,23 +116,35 @@ function TopBar({ onNewPlan, onHome, onBack, hasResults, hasBack }) {
 }
 
 
-// ─── Step 1: Shipment Input (No Priority / No Urgency) ──────────────
+// ─── Step 1: Shipment Input — Map Background + National/Intl Toggle ─
 function ShipmentInput({ onSubmit }) {
+  const [shipmentType, setShipmentType] = useState('national') // national | international
   const [form, setForm] = useState({
-    origin: 'Mumbai',
-    destination: 'Delhi',
+    origin: '',
+    destination: '',
     weight_tons: 20,
     commodity: 'electronics',
     fragility: 'medium',
     deadline_days: 14,
     budget_inr: '',
+    priority: 'cost',
+    urgency: 'standard',
     distance_km: 1400,
     value_inr: 5000000,
   })
 
+  const cities = shipmentType === 'national' ? NATIONAL_CITIES : INTERNATIONAL_CITIES
+
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
+  // Reset origin/destination when switching shipment type
+  const handleTypeSwitch = (type) => {
+    setShipmentType(type)
+    setForm(f => ({ ...f, origin: '', destination: '' }))
+  }
+
   const handleSubmit = () => {
+    if (!form.origin || !form.destination) return
     const payload = { ...form }
     if (!payload.budget_inr) delete payload.budget_inr
     else payload.budget_inr = +payload.budget_inr
@@ -138,48 +155,89 @@ function ShipmentInput({ onSubmit }) {
     onSubmit(payload)
   }
 
+  const PRIORITIES = [
+    { id: 'cost', label: 'Lowest Cost', desc: 'Optimize for minimum shipment cost' },
+    { id: 'speed', label: 'Fastest', desc: 'Minimize transit time' },
+    { id: 'reliability', label: 'Most Reliable', desc: 'Maximize on-time delivery rate' },
+    { id: 'sustainability', label: 'Greenest', desc: 'Minimize carbon emissions' },
+  ]
+
+  const canSubmit = form.origin && form.destination && form.origin !== form.destination
+
   return (
-    <div style={{ animation: 'fadeInUp 0.6s ease' }}>
+    <div className="shipment-form-page" style={{ animation: 'fadeInUp 0.6s ease' }}>
       <div className="form-header">
         <h1>Configure Your Shipment</h1>
-        <p>Fill in your shipment details and our four AI brains will analyze 40+ carriers to find the optimal solution.</p>
+        <p>Fill in your shipment details and our AI-powered system will analyze 40+ carriers to find the optimal solution for your needs.</p>
       </div>
 
       <div className="card form-card">
-        {/* Route Section */}
-        <div className="form-section-label">Route & Cargo</div>
+        {/* Shipment Type Toggle */}
+        <div className="shipment-type-toggle">
+          <button
+            className={`shipment-type-btn ${shipmentType === 'national' ? 'active' : ''}`}
+            onClick={() => handleTypeSwitch('national')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+            </svg>
+            National
+          </button>
+          <button
+            className={`shipment-type-btn ${shipmentType === 'international' ? 'active' : ''}`}
+            onClick={() => handleTypeSwitch('international')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+            International
+          </button>
+        </div>
+
+        {/* ① Route & Cargo */}
+        <div className="form-numbered-section">
+          <div className="form-section-number">1</div>
+          <div className="form-section-title">Route & Cargo</div>
+        </div>
         <div className="form-grid">
           <div className="form-group">
             <label>Origin</label>
             <select value={form.origin} onChange={e => update('origin', e.target.value)}>
-              {CITIES.map(c => <option key={c}>{c}</option>)}
+              <option value="" disabled>Select origin</option>
+              {cities.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label>Destination</label>
             <select value={form.destination} onChange={e => update('destination', e.target.value)}>
-              {CITIES.map(c => <option key={c}>{c}</option>)}
+              <option value="" disabled>Select destination</option>
+              {cities.filter(c => c !== form.origin).map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label>Weight (tons)</label>
+            <label>Weight (Tons)</label>
             <input type="number" value={form.weight_tons} onChange={e => update('weight_tons', e.target.value)} />
           </div>
           <div className="form-group">
             <label>Commodity Type</label>
             <select value={form.commodity} onChange={e => update('commodity', e.target.value)}>
-              {COMMODITIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
+              {COMMODITIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>)}
             </select>
           </div>
         </div>
 
         <div className="form-divider" />
 
-        {/* Constraints Section */}
-        <div className="form-section-label">Constraints</div>
+        {/* ② Constraints */}
+        <div className="form-numbered-section">
+          <div className="form-section-number">2</div>
+          <div className="form-section-title">Constraints</div>
+        </div>
         <div className="form-grid">
           <div className="form-group">
-            <label>Fragility</label>
+            <label>Fragility Level</label>
             <select value={form.fragility} onChange={e => update('fragility', e.target.value)}>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -187,21 +245,57 @@ function ShipmentInput({ onSubmit }) {
             </select>
           </div>
           <div className="form-group">
-            <label>Deadline (days)</label>
+            <label>Deadline (Days)</label>
             <input type="number" value={form.deadline_days} onChange={e => update('deadline_days', e.target.value)} />
           </div>
-          <div className="form-group full-width">
+          <div className="form-group">
             <label>Budget (₹) — Optional</label>
             <input type="number" value={form.budget_inr} onChange={e => update('budget_inr', e.target.value)} placeholder="No limit" />
           </div>
+          <div className="form-group">
+            <label>Urgency</label>
+            <select value={form.urgency} onChange={e => update('urgency', e.target.value)}>
+              <option value="economy">Economy</option>
+              <option value="standard">Standard</option>
+              <option value="express">Express</option>
+            </select>
+          </div>
         </div>
 
-        <button className="btn-generate" onClick={handleSubmit}>
+        <div className="form-divider" />
+
+        {/* ③ Optimization Priority */}
+        <div className="form-numbered-section">
+          <div className="form-section-number">3</div>
+          <div className="form-section-title">Optimization Priority</div>
+        </div>
+        <div className="priority-grid">
+          {PRIORITIES.map(p => (
+            <div
+              key={p.id}
+              className={`priority-option ${form.priority === p.id ? 'selected' : ''}`}
+              onClick={() => update('priority', p.id)}
+            >
+              <div className="priority-label">{p.label}</div>
+              <div className="priority-desc">{p.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <button className="btn-generate" onClick={handleSubmit} disabled={!canSubmit} style={{ opacity: canSubmit ? 1 : 0.5 }}>
           Generate Shipping Plan
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </button>
+      </div>
+
+      {/* AI Info Bar */}
+      <div className="form-ai-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+        Our AI analyzes real-time data from multiple carriers to get you the best rates and delivery times.
       </div>
     </div>
   )
@@ -725,7 +819,12 @@ function App() {
 
   // Landing page is full-screen, no topbar
   if (phase === 'landing') {
-    return <LandingPage onStart={() => setPhase('input')} />
+    return <LandingPage onStart={() => setPhase('login')} />
+  }
+
+  // Login page is also full-screen, no topbar
+  if (phase === 'login') {
+    return <LoginPage onLogin={() => setPhase('input')} />
   }
 
   return (

@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dotted-map": "^3.1.0",
+    "framer-motion": "^12.35.0",
     "leaflet": "^1.9.4",
     "ogl": "^0.0.117",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
