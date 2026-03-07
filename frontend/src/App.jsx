@@ -3,6 +3,7 @@ import './index.css'
 import * as api from './api'
 import { Ribbons } from './components/Ribbons'
 import { ModeIcon } from './components/ModeIcons'
+import RouteMap from './components/RouteMap'
 
 const MODE_CONFIG = {
   road: { label: 'Road', color: '#C4841D' },
@@ -463,6 +464,16 @@ function ResultsView({ plan, shipmentForm, onModeClick }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Route Map */}
+      <div className="section">
+        <RouteMap
+          origin={plan.shipment.origin}
+          destination={plan.shipment.destination}
+          mode={rec.mode}
+          transitTime={rec.transit_time_formatted || `${rec.transit_days} days`}
+        />
       </div>
 
       <div className="section-divider" />

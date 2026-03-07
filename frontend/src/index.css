@@ -1380,6 +1380,148 @@ body {
   color: rgba(255, 255, 255, 0.7);
 }
 
+/* ─── Route Map ────────────────────────────────────────────────────── */
+.route-map-section {
+  margin-top: 4px;
+}
+
+.route-map-wrapper {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+}
+
+.route-map-container {
+  width: 100%;
+  height: 420px;
+  background: var(--bg);
+}
+
+.route-map-overlay {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  max-width: 280px;
+  z-index: 10;
+}
+
+.map-overlay-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.map-overlay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.map-overlay-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.map-overlay-item.full {
+  grid-column: 1 / -1;
+}
+
+.map-overlay-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.map-overlay-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.map-overlay-status {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.map-overlay-status.clear {
+  color: var(--success);
+  background: rgba(56, 161, 105, 0.1);
+}
+
+.map-overlay-status.moderate {
+  color: var(--warning);
+  background: rgba(196, 132, 29, 0.1);
+}
+
+.map-overlay-status.heavy {
+  color: var(--danger);
+  background: rgba(229, 62, 62, 0.1);
+}
+
+.route-map-disclaimer {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 235, 187, 0.95);
+  color: #8B6914;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 100px;
+  z-index: 10;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.route-map-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.route-map-error-icon {
+  font-size: 2.5rem;
+}
+
+.route-map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  gap: 12px;
+}
+
 /* ─── Mode Card Action Hint ────────────────────────────────────────── */
 .mode-card-action {
   margin-top: 14px;
