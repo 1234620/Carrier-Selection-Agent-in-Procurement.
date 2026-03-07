@@ -8,6 +8,7 @@ from typing import List, Optional, Dict
 import json
 import os
 import random
+import math
 
 from ..agents.mode_selector import get_mode_selector
 from ..agents.carrier_analyst import get_carrier_analyst
@@ -18,6 +19,97 @@ from ..parsers.bid_parser import get_bid_parser
 router = APIRouter()
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "synthetic")
+
+
+# ─── Geographic Feasibility Data ─────────────────────────────────────────
+
+# Coastal / port cities — ocean freight is feasible if BOTH origin & destination are coastal
+COASTAL_CITIES = {
+    "Mumbai", "Chennai", "Kolkata", "Kochi", "Visakhapatnam", "Mangalore",
+    "Kandla", "Paradip", "Tuticorin", "Goa", "Porbandar", "Mundra",
+    "Haldia", "Ennore", "Kakinada", "Krishnapatnam", "Dhamra",
+    # International port cities
+    "Shanghai", "Hamburg", "Dubai", "Singapore", "Rotterdam",
+}
+
+# Indian domestic cities (comprehensive list)
+INDIAN_CITIES = {
+    # Metros
+    "Mumbai", "Delhi", "Chennai", "Kolkata", "Bangalore", "Hyderabad",
+    # Tier-1
+    "Ahmedabad", "Pune", "Jaipur", "Lucknow", "Kanpur", "Surat",
+    "Nagpur", "Indore", "Bhopal", "Patna", "Vadodara", "Ludhiana",
+    # Tier-2
+    "Coimbatore", "Visakhapatnam", "Kochi", "Mangalore", "Mysore",
+    "Thiruvananthapuram", "Guwahati", "Chandigarh", "Dehradun", "Ranchi",
+    "Raipur", "Bhubaneswar", "Goa", "Amritsar", "Jodhpur", "Udaipur",
+    "Varanasi", "Agra", "Rajkot", "Nashik", "Aurangabad", "Hubli",
+    "Tiruchirappalli", "Salem", "Madurai", "Jalandhar", "Meerut",
+    "Allahabad", "Vijayawada", "Gwalior", "Jammu", "Srinagar",
+    # Port / coastal
+    "Kandla", "Mundra", "Tuticorin", "Paradip", "Haldia", "Ennore",
+    "Kakinada", "Krishnapatnam", "Porbandar", "Dhamra",
+}
+
+INTERNATIONAL_CITIES = {
+    "Shanghai", "Hamburg", "Dubai", "Singapore", "Rotterdam",
+}
+
+
+def get_feasible_modes(origin: str, destination: str) -> list:
+    """Determine which transport modes are feasible for a given route.
+    - Road & Rail: Always feasible for domestic; road feasible for some int'l
+    - Air: Always feasible (domestic flights + international)
+    - Ocean: Only if BOTH cities are coastal / port cities
+    """
+    both_domestic = origin in INDIAN_CITIES and destination in INDIAN_CITIES
+    has_international = origin in INTERNATIONAL_CITIES or destination in INTERNATIONAL_CITIES
+
+    modes = ["road", "rail", "air"]
+
+    # Ocean is only feasible if both cities have port/coastal access
+    if origin in COASTAL_CITIES and destination in COASTAL_CITIES:
+        modes.append("ocean")
+
+    # For purely international routes, always include ocean if at least one is coastal
+    if has_international and "ocean" not in modes:
+        if origin in COASTAL_CITIES or destination in COASTAL_CITIES:
+            modes.append("ocean")
+
+    return modes
+
+
+def format_transit_time(days: float) -> str:
+    """Convert decimal days to human-readable format.
+    Examples: 3.1 -> '3 Days, 2 Hours'  |  0.2 -> '4 Hours, 48 Minutes'
+    """
+    total_hours = days * 24
+    d = int(total_hours // 24)
+    remaining = total_hours - d * 24
+    h = int(remaining)
+    m = int(round((remaining - h) * 60))
+
+    parts = []
+    if d > 0:
+        parts.append(f"{d} Day{'s' if d != 1 else ''}")
+    if h > 0:
+        parts.append(f"{h} Hour{'s' if h != 1 else ''}")
+    if d == 0 and h == 0 and m > 0:
+        parts.append(f"{m} Minute{'s' if m != 1 else ''}")
+    if not parts:
+        parts.append("< 1 Hour")
+    return ", ".join(parts)
+
+
+def generate_mock_contact(carrier_name: str, index: int) -> dict:
+    """Generate mock contact details for a carrier."""
+    area_codes = ["22", "11", "44", "33", "80", "40", "79", "20"]
+    code = area_codes[index % len(area_codes)]
+    phone_suffix = f"{10000 + hash(carrier_name) % 90000}"
+    return {
+        "phone": f"+91 {code} {phone_suffix[:4]} {phone_suffix[4:]}",
+        "email": f"logistics@{carrier_name.lower().replace(' ', '').replace('-', '')[:12]}.com",
+    }
 
 
 # ─── Pydantic Models ─────────────────────────────────────────────────────
@@ -67,8 +159,6 @@ class GeneratePlanRequest(BaseModel):
     fragility: str = "medium"
     deadline_days: int = 14
     budget_inr: Optional[float] = None
-    priority: str = "cost"  # cost / speed / reliability / sustainability
-    urgency: str = "standard"
     temp_sensitive: bool = False
     value_inr: float = 5000000
     distance_km: float = 1400
@@ -80,8 +170,6 @@ class RecomputePlanRequest(BaseModel):
     commodity: str
     fragility: str
     deadline_days: int
-    priority: str
-    urgency: str = "standard"
     budget_inr: Optional[float] = None
     temp_sensitive: bool = False
     value_inr: float = 5000000
@@ -107,15 +195,18 @@ async def generate_plan(req: GeneratePlanRequest):
     shipment = req.model_dump()
     distance = req.distance_km if req.distance_km > 100 else 1400
 
+    # ── Geographic Feasibility — determine which modes make sense ──
+    feasible_modes = get_feasible_modes(req.origin, req.destination)
+
     # ── Brain 0: Mode Selection ──
-    mode_result = selector.predict(shipment, ["road", "rail", "ocean", "air"])
+    mode_result = selector.predict(shipment, feasible_modes)
 
     # ── Brain 1: Score ALL carriers per mode directly (bypass lane restrictions) ──
     if not analyst._loaded:
         analyst.load_data()
     all_carriers = analyst.carriers
     scored_by_mode = {}
-    modes = ["road", "rail", "ocean", "air"]
+    modes = feasible_modes
     for mode in modes:
         mode_carriers = [c for c in all_carriers if c.get("mode") == mode]
         if mode_carriers:
@@ -142,13 +233,9 @@ async def generate_plan(req: GeneratePlanRequest):
         if carriers_in_mode:
             best_carrier = carriers_in_mode[0]
 
-        # Compute composite score based on user priority
-        priority_weights = {
-            "cost": {"cost": 0.50, "risk": 0.15, "carbon": 0.10, "speed": 0.25},
-            "speed": {"cost": 0.15, "risk": 0.15, "carbon": 0.05, "speed": 0.65},
-            "reliability": {"cost": 0.10, "risk": 0.55, "carbon": 0.10, "speed": 0.25},
-            "sustainability": {"cost": 0.15, "risk": 0.15, "carbon": 0.55, "speed": 0.15},
-        }.get(req.priority, {"cost": 0.35, "risk": 0.25, "carbon": 0.20, "speed": 0.20})
+        # Compute composite score using balanced AI-driven weights
+        # The AI considers all factors equally important and ranks holistically
+        w = {"cost": 0.30, "risk": 0.25, "carbon": 0.20, "speed": 0.25}
 
         cost_score = max(0, 100 - (est_cost / (req.weight_tons * distance) * 10))
         speed_score = max(0, 100 - transit_days * 5)
@@ -157,10 +244,10 @@ async def generate_plan(req: GeneratePlanRequest):
         carbon_score = max(0, 100 - carbon_kg / (req.weight_tons * 0.5))
 
         composite = round(
-            priority_weights["cost"] * cost_score +
-            priority_weights["risk"] * risk_quality +
-            priority_weights["carbon"] * carbon_score +
-            priority_weights["speed"] * speed_score
+            w["cost"] * cost_score +
+            w["risk"] * risk_quality +
+            w["carbon"] * carbon_score +
+            w["speed"] * speed_score
         , 1)
 
         # Scale AI confidence to realistic range (60-95%) based on composite + probability
@@ -172,6 +259,7 @@ async def generate_plan(req: GeneratePlanRequest):
             "ai_confidence": ai_confidence,
             "estimated_cost_inr": est_cost,
             "transit_days": transit_days,
+            "transit_time_formatted": format_transit_time(transit_days),
             "delay_probability": risk.get("delay_probability", 0),
             "risk_score": risk_score_val,
             "risk_level": risk.get("risk_level", "medium"),
@@ -192,31 +280,28 @@ async def generate_plan(req: GeneratePlanRequest):
     # ── Build carrier alternatives for recommended mode ──
     rec_mode = recommended["mode"]
     carrier_alternatives = []
-    for c in scored_by_mode.get(rec_mode, [])[:8]:
+    for i, c in enumerate(scored_by_mode.get(rec_mode, [])[:8]):
         transit_days = round(distance / SPEED_KM_PER_DAY.get(rec_mode, 500), 1)
         est_cost = round(COST_PER_TON_KM.get(rec_mode, 3) * req.weight_tons * distance * (1 + (100 - c.get("topsis_score", 50)) / 200))
+        contact = generate_mock_contact(c.get("name", f"Carrier{i}"), i)
         carrier_alternatives.append({
             "name": c.get("name"),
             "id": c.get("id"),
             "score": round(c.get("topsis_score", 0), 1),
             "estimated_cost_inr": est_cost,
             "transit_days": transit_days,
+            "transit_time_formatted": format_transit_time(transit_days),
             "risk_score": risk_by_mode.get(rec_mode, {}).get("risk_score", 50),
             "reliability": round(c.get("otd_rate", c.get("schedule_reliability", c.get("cutoff_reliability", 0.8))) * 100, 1),
             "capacity_tons": c.get("fleet_size", c.get("wagon_fleet", c.get("vessel_count", c.get("flights_per_week", 100)))),
+            "contact_phone": contact["phone"],
+            "contact_email": contact["email"],
         })
 
-    # ── Why this recommendation? ──
+    # ── Why this recommendation? (AI-driven, no user priority) ──
     reasons = []
-    if req.priority == "cost":
-        reasons.append(f"{rec_mode.capitalize()} freight offers the lowest cost at ₹{recommended['estimated_cost_inr']:,} for this route.")
-    elif req.priority == "speed":
-        reasons.append(f"{rec_mode.capitalize()} provides the fastest transit at {recommended['transit_days']} days.")
-    elif req.priority == "reliability":
-        reasons.append(f"{rec_mode.capitalize()} has a reliability score of {recommended['reliability_score']}% with lowest delay risk.")
-    elif req.priority == "sustainability":
-        reasons.append(f"{rec_mode.capitalize()} produces only {recommended['carbon_kg']} kg CO₂, minimizing environmental impact.")
-
+    reasons.append(f"{rec_mode.capitalize()} freight scored highest overall ({recommended['composite_score']}/100) based on cost, speed, risk, and sustainability analysis.")
+    reasons.append(f"Estimated cost: ₹{recommended['estimated_cost_inr']:,} with a transit time of {recommended['transit_time_formatted']}.")
     reasons.append(f"The AI engine has {recommended['ai_confidence']}% confidence in this recommendation based on historical data analysis.")
     if recommended["best_carrier"] and recommended["best_carrier"] != "N/A":
         score_text = f" with a performance score of {recommended['best_carrier_score']}/100" if recommended.get("best_carrier_score") else ""
@@ -247,7 +332,6 @@ async def generate_plan(req: GeneratePlanRequest):
             "destination": req.destination,
             "weight_tons": req.weight_tons,
             "commodity": req.commodity,
-            "priority": req.priority,
             "deadline_days": req.deadline_days,
             "fragility": req.fragility,
         },
@@ -258,6 +342,7 @@ async def generate_plan(req: GeneratePlanRequest):
             "carrier_id": recommended["best_carrier_id"],
             "estimated_cost_inr": recommended["estimated_cost_inr"],
             "transit_days": recommended["transit_days"],
+            "transit_time_formatted": recommended["transit_time_formatted"],
             "risk_level": recommended["risk_level"],
             "risk_score": recommended["risk_score"],
             "carbon_kg": recommended["carbon_kg"],
@@ -265,6 +350,7 @@ async def generate_plan(req: GeneratePlanRequest):
             "composite_score": recommended["composite_score"],
             "ai_confidence": recommended["ai_confidence"],
         },
+        "feasible_modes": feasible_modes,
         "carrier_alternatives": carrier_alternatives,
         "explanation": {
             "why_recommended": reasons,
@@ -278,6 +364,86 @@ async def recompute_plan(req: RecomputePlanRequest):
     """Recompute plan with changed parameters (what-if scenarios)."""
     plan_req = GeneratePlanRequest(**req.model_dump())
     return await generate_plan(plan_req)
+
+
+# ─── Mode Detail (expanded carrier list for a specific mode) ─────────────
+
+class ModeDetailRequest(BaseModel):
+    origin: str = "Mumbai"
+    destination: str = "Delhi"
+    weight_tons: float = 20.0
+    commodity: str = "electronics"
+    distance_km: float = 1400
+    value_inr: float = 5000000
+
+@router.post("/mode-details/{mode}")
+async def mode_details(mode: str, req: ModeDetailRequest):
+    """Get detailed carrier list for a specific transport mode."""
+    from ..models.scoring import topsis_rank
+
+    if mode not in ["road", "rail", "ocean", "air"]:
+        raise HTTPException(status_code=400, detail=f"Invalid mode: {mode}")
+
+    analyst = get_carrier_analyst()
+    predictor = get_risk_predictor()
+
+    if not analyst._loaded:
+        analyst.load_data()
+
+    distance = req.distance_km if req.distance_km > 100 else 1400
+    mode_carriers = [c for c in analyst.carriers if c.get("mode") == mode]
+
+    if not mode_carriers:
+        return {"mode": mode, "carriers": [], "count": 0}
+
+    scored = topsis_rank(mode_carriers, mode)
+
+    # Risk for this mode
+    shipment = req.model_dump()
+    shipment["mode_used"] = mode
+    risk = predictor.predict_risk(shipment)
+
+    carriers_out = []
+    for i, c in enumerate(scored):
+        transit_days = round(distance / SPEED_KM_PER_DAY.get(mode, 500), 1)
+        est_cost = round(
+            COST_PER_TON_KM.get(mode, 3) * req.weight_tons * distance
+            * (1 + (100 - c.get("topsis_score", 50)) / 200)
+        )
+        contact = generate_mock_contact(c.get("name", f"Carrier{i}"), i)
+        carriers_out.append({
+            "name": c.get("name"),
+            "id": c.get("id"),
+            "score": round(c.get("topsis_score", 0), 1),
+            "estimated_cost_inr": est_cost,
+            "transit_days": transit_days,
+            "transit_time_formatted": format_transit_time(transit_days),
+            "risk_score": risk.get("risk_score", 50),
+            "risk_level": risk.get("risk_level", "medium"),
+            "reliability": round(c.get("otd_rate", c.get("schedule_reliability", c.get("cutoff_reliability", 0.8))) * 100, 1),
+            "capacity_tons": c.get("fleet_size", c.get("wagon_fleet", c.get("vessel_count", c.get("flights_per_week", 100)))),
+            "contact_phone": contact["phone"],
+            "contact_email": contact["email"],
+        })
+
+    carbon_kg = round(CARBON_FACTORS.get(mode, 80) * req.weight_tons * distance / 1000, 1)
+    transit_days = round(distance / SPEED_KM_PER_DAY.get(mode, 500), 1)
+
+    return {
+        "mode": mode,
+        "route": f"{req.origin} → {req.destination}",
+        "summary": {
+            "total_carriers": len(carriers_out),
+            "avg_score": round(sum(c["score"] for c in carriers_out) / max(len(carriers_out), 1), 1),
+            "estimated_cost_inr": round(COST_PER_TON_KM.get(mode, 3) * req.weight_tons * distance),
+            "transit_days": transit_days,
+            "transit_time_formatted": format_transit_time(transit_days),
+            "carbon_kg": carbon_kg,
+            "risk_level": risk.get("risk_level", "medium"),
+        },
+        "carriers": carriers_out,
+        "count": len(carriers_out),
+    }
 
 
 # ─── Mode Selection (Brain 0) ────────────────────────────────────────────

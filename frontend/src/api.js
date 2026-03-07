@@ -6,6 +6,7 @@ export async function generatePlan(shipment) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(shipment),
     });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
     return res.json();
 }
 
@@ -15,6 +16,7 @@ export async function recomputePlan(shipment) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(shipment),
     });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
     return res.json();
 }
 
@@ -24,5 +26,16 @@ export async function chatWithAgent(message) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
     });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+}
+
+export async function getModeDetails(mode, params) {
+    const res = await fetch(`${API_BASE}/mode-details/${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+    });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
     return res.json();
 }

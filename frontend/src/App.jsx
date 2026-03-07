@@ -13,21 +13,20 @@ const MODE_CONFIG = {
 
 const CITIES = [
   'Mumbai', 'Delhi', 'Chennai', 'Kolkata', 'Bangalore', 'Hyderabad',
-  'Ahmedabad', 'Pune', 'Jaipur', 'Ludhiana', 'Coimbatore', 'Visakhapatnam',
-  'Nagpur', 'Indore', 'Guwahati', 'Shanghai', 'Hamburg', 'Dubai',
-  'Singapore', 'Rotterdam',
+  'Ahmedabad', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Surat',
+  'Nagpur', 'Indore', 'Bhopal', 'Patna', 'Vadodara', 'Ludhiana',
+  'Coimbatore', 'Visakhapatnam', 'Kochi', 'Mangalore', 'Mysore',
+  'Thiruvananthapuram', 'Guwahati', 'Chandigarh', 'Dehradun', 'Ranchi',
+  'Raipur', 'Bhubaneswar', 'Goa', 'Amritsar', 'Jodhpur', 'Udaipur',
+  'Varanasi', 'Agra', 'Rajkot', 'Nashik', 'Aurangabad', 'Hubli',
+  'Tiruchirappalli', 'Salem', 'Madurai', 'Jalandhar', 'Meerut',
+  'Allahabad', 'Vijayawada', 'Gwalior', 'Jammu', 'Srinagar',
+  'Shanghai', 'Hamburg', 'Dubai', 'Singapore', 'Rotterdam',
 ]
 
 const COMMODITIES = [
   'electronics', 'pharmaceuticals', 'textiles', 'auto_parts', 'fmcg',
   'chemicals', 'steel', 'agri_products', 'gems_jewelry', 'machinery',
-]
-
-const PRIORITIES = [
-  { id: 'cost', label: 'Lowest Cost', desc: 'Optimize for minimum shipment cost' },
-  { id: 'speed', label: 'Fastest', desc: 'Minimize transit time' },
-  { id: 'reliability', label: 'Most Reliable', desc: 'Maximize on-time delivery rate' },
-  { id: 'sustainability', label: 'Greenest', desc: 'Minimize carbon emissions' },
 ]
 
 
@@ -87,7 +86,7 @@ function LandingPage({ onStart }) {
 
 
 // ─── Top Bar ─────────────────────────────────────────────────────────
-function TopBar({ onNewPlan, onHome, hasResults }) {
+function TopBar({ onNewPlan, onHome, onBack, hasResults, hasBack }) {
   return (
     <div className="topbar">
       <div className="topbar-brand" onClick={onHome} style={{ cursor: 'pointer' }}>
@@ -98,6 +97,9 @@ function TopBar({ onNewPlan, onHome, hasResults }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {hasBack && (
+          <button className="btn-new-plan" onClick={onBack}>← Back to Results</button>
+        )}
         {hasResults && (
           <button className="btn-new-plan" onClick={onNewPlan}>← New Shipment</button>
         )}
@@ -108,7 +110,7 @@ function TopBar({ onNewPlan, onHome, hasResults }) {
 }
 
 
-// ─── Step 1: Shipment Input ──────────────────────────────────────────
+// ─── Step 1: Shipment Input (No Priority / No Urgency) ──────────────
 function ShipmentInput({ onSubmit }) {
   const [form, setForm] = useState({
     origin: 'Mumbai',
@@ -118,8 +120,6 @@ function ShipmentInput({ onSubmit }) {
     fragility: 'medium',
     deadline_days: 14,
     budget_inr: '',
-    priority: 'cost',
-    urgency: 'standard',
     distance_km: 1400,
     value_inr: 5000000,
   })
@@ -189,35 +189,10 @@ function ShipmentInput({ onSubmit }) {
             <label>Deadline (days)</label>
             <input type="number" value={form.deadline_days} onChange={e => update('deadline_days', e.target.value)} />
           </div>
-          <div className="form-group">
+          <div className="form-group full-width">
             <label>Budget (₹) — Optional</label>
             <input type="number" value={form.budget_inr} onChange={e => update('budget_inr', e.target.value)} placeholder="No limit" />
           </div>
-          <div className="form-group">
-            <label>Urgency</label>
-            <select value={form.urgency} onChange={e => update('urgency', e.target.value)}>
-              <option value="economy">Economy</option>
-              <option value="standard">Standard</option>
-              <option value="express">Express</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="form-divider" />
-
-        {/* Priority Section */}
-        <div className="form-section-label">Optimization Priority</div>
-        <div className="priority-grid">
-          {PRIORITIES.map(p => (
-            <div
-              key={p.id}
-              className={`priority-option ${form.priority === p.id ? 'selected' : ''}`}
-              onClick={() => update('priority', p.id)}
-            >
-              <div className="priority-label">{p.label}</div>
-              <div className="priority-desc">{p.desc}</div>
-            </div>
-          ))}
         </div>
 
         <button className="btn-generate" onClick={handleSubmit}>
@@ -265,31 +240,157 @@ function LoadingAnimation({ step }) {
 }
 
 
+// ─── Mode Detail Page ────────────────────────────────────────────────
+function ModeDetailView({ modeData, plan, shipmentForm, onBack }) {
+  const [detailData, setDetailData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const mode = modeData.mode
+  const mc = MODE_CONFIG[mode] || {}
+
+  useState(() => {
+    const fetchDetails = async () => {
+      try {
+        const result = await api.getModeDetails(mode, {
+          origin: plan.shipment.origin,
+          destination: plan.shipment.destination,
+          weight_tons: plan.shipment.weight_tons,
+          commodity: plan.shipment.commodity,
+          distance_km: shipmentForm.distance_km || 1400,
+          value_inr: shipmentForm.value_inr || 5000000,
+        })
+        setDetailData(result)
+      } catch (e) {
+        console.error(e)
+      }
+      setLoading(false)
+    }
+    fetchDetails()
+  }, [mode])
+
+  if (loading) {
+    return (
+      <div className="loading-overlay">
+        <div className="loading-brain" />
+        <div className="loading-text">Loading {mc.label} Carriers</div>
+        <div className="loading-sub">Fetching detailed carrier information...</div>
+      </div>
+    )
+  }
+
+  const carriers = detailData?.carriers || []
+  const summary = detailData?.summary || {}
+
+  return (
+    <div style={{ animation: 'fadeInUp 0.5s ease' }}>
+      {/* Header */}
+      <div className="mode-detail-header">
+        <div className="mode-detail-icon" style={{ color: mc.color }}>
+          <ModeIcon mode={mode} size={40} color={mc.color} />
+        </div>
+        <div>
+          <h1 className="mode-detail-title">{mc.label} Freight Carriers</h1>
+          <p className="mode-detail-route">
+            {plan.shipment.origin} → {plan.shipment.destination} · {plan.shipment.weight_tons}t · {plan.shipment.commodity.replace(/_/g, ' ')}
+          </p>
+        </div>
+      </div>
+
+      {/* Summary KPIs */}
+      <div className="mode-detail-kpis">
+        <div className="rec-kpi">
+          <div className="rec-kpi-value">{summary.total_carriers || carriers.length}</div>
+          <div className="rec-kpi-label">Available Carriers</div>
+        </div>
+        <div className="rec-kpi">
+          <div className="rec-kpi-value">₹{summary.estimated_cost_inr?.toLocaleString()}</div>
+          <div className="rec-kpi-label">Base Cost</div>
+        </div>
+        <div className="rec-kpi">
+          <div className="rec-kpi-value">{summary.transit_time_formatted || `${summary.transit_days}d`}</div>
+          <div className="rec-kpi-label">Transit Time</div>
+        </div>
+        <div className="rec-kpi">
+          <div className="rec-kpi-value">{summary.carbon_kg?.toLocaleString()} kg</div>
+          <div className="rec-kpi-label">CO₂ Emissions</div>
+        </div>
+        <div className="rec-kpi">
+          <div className="rec-kpi-value" style={{ color: summary.risk_level === 'low' ? 'var(--success)' : summary.risk_level === 'high' ? 'var(--danger)' : 'var(--warning)' }}>
+            {summary.risk_level?.toUpperCase()}
+          </div>
+          <div className="rec-kpi-label">Risk Level</div>
+        </div>
+        <div className="rec-kpi">
+          <div className="rec-kpi-value">{summary.avg_score}</div>
+          <div className="rec-kpi-label">Avg Score</div>
+        </div>
+      </div>
+
+      {/* Carrier Table */}
+      <div className="section" style={{ marginTop: 32 }}>
+        <div className="section-title">All {mc.label} Carriers</div>
+        <div className="section-subtitle">Ranked by AI performance scoring (TOPSIS + AHP)</div>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="carrier-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Carrier</th>
+                <th>Cost (₹)</th>
+                <th>Transit</th>
+                <th>Reliability</th>
+                <th>Risk</th>
+                <th>Score</th>
+                <th>Contact</th>
+              </tr>
+            </thead>
+            <tbody>
+              {carriers.map((c, i) => (
+                <tr key={c.id || i}>
+                  <td>
+                    <span className={`carrier-rank ${i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rx'}`}>
+                      {i + 1}
+                    </span>
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  <td className="mono">₹{c.estimated_cost_inr?.toLocaleString()}</td>
+                  <td className="mono">{c.transit_time_formatted}</td>
+                  <td>{c.reliability}%</td>
+                  <td>
+                    <span className={`risk-badge ${c.risk_level || (c.risk_score < 30 ? 'low' : c.risk_score < 60 ? 'medium' : 'high')}`}>
+                      {c.risk_level || (c.risk_score < 30 ? 'Low' : c.risk_score < 60 ? 'Med' : 'High')}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="score-bar-inline">
+                      <span className="mono" style={{ color: c.score > 70 ? 'var(--success)' : c.score > 40 ? 'var(--warning)' : 'var(--danger)' }}>{c.score}</span>
+                      <div className="score-track"><div className={`score-fill ${c.score > 70 ? 'high' : c.score > 40 ? 'medium' : 'low'}`} style={{ width: `${c.score}%` }} /></div>
+                    </div>
+                  </td>
+                  <td>
+                    <a href={`tel:${c.contact_phone}`} className="btn-contact" title={c.contact_phone}>
+                      📞 {c.contact_phone}
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 // ─── Results View ────────────────────────────────────────────────────
-function ResultsView({ plan, shipmentForm }) {
-  const [whatIfForm, setWhatIfForm] = useState({ ...shipmentForm })
-  const [whatIfResult, setWhatIfResult] = useState(null)
-  const [whatIfLoading, setWhatIfLoading] = useState(false)
+function ResultsView({ plan, shipmentForm, onModeClick }) {
   const [chatInput, setChatInput] = useState('')
   const [chatMessages, setChatMessages] = useState([])
   const [chatLoading, setChatLoading] = useState(false)
 
   const rec = plan.recommendation
   const recModeConf = MODE_CONFIG[rec.mode] || {}
-
-  const handleWhatIf = async () => {
-    setWhatIfLoading(true)
-    try {
-      const payload = { ...whatIfForm }
-      payload.weight_tons = +payload.weight_tons
-      payload.deadline_days = +payload.deadline_days
-      if (!payload.budget_inr) delete payload.budget_inr
-      else payload.budget_inr = +payload.budget_inr
-      const result = await api.recomputePlan(payload)
-      setWhatIfResult(result)
-    } catch (e) { console.error(e) }
-    setWhatIfLoading(false)
-  }
 
   const handleChat = async (question) => {
     const q = question || chatInput
@@ -339,7 +440,7 @@ function ResultsView({ plan, shipmentForm }) {
               <div className="rec-kpi-label">Estimated Cost</div>
             </div>
             <div className="rec-kpi">
-              <div className="rec-kpi-value">{rec.transit_days} days</div>
+              <div className="rec-kpi-value">{rec.transit_time_formatted || `${rec.transit_days} days`}</div>
               <div className="rec-kpi-label">Transit Time</div>
             </div>
             <div className="rec-kpi">
@@ -366,15 +467,19 @@ function ResultsView({ plan, shipmentForm }) {
 
       <div className="section-divider" />
 
-      {/* Mode Comparison */}
+      {/* Mode Comparison — Clickable Cards */}
       <div className="section">
         <div className="section-title">Transport Mode Comparison</div>
-        <div className="section-subtitle">All modes analyzed and ranked by your priority: {plan.shipment.priority}</div>
+        <div className="section-subtitle">Click any mode to view all available carriers and detailed breakdown</div>
         <div className="mode-comparison-grid">
           {plan.mode_comparison.map((mode, idx) => {
             const mc = MODE_CONFIG[mode.mode] || {}
             return (
-              <div key={mode.mode} className={`mode-compare-card ${idx === 0 ? 'recommended' : ''}`}>
+              <div
+                key={mode.mode}
+                className={`mode-compare-card ${idx === 0 ? 'recommended' : ''}`}
+                onClick={() => onModeClick(mode)}
+              >
                 <div className="mode-compare-header">
                   <ModeIcon mode={mode.mode} size={22} color={mc.color} />
                   <span className="mode-compare-name">{mc.label}</span>
@@ -387,7 +492,7 @@ function ResultsView({ plan, shipmentForm }) {
                   </div>
                   <div className="mode-stat">
                     <span className="mode-stat-label">Transit</span>
-                    <span className="mode-stat-value">{mode.transit_days} days</span>
+                    <span className="mode-stat-value">{mode.transit_time_formatted || `${mode.transit_days} days`}</span>
                   </div>
                   <div className="mode-stat">
                     <span className="mode-stat-label">Risk</span>
@@ -408,6 +513,9 @@ function ResultsView({ plan, shipmentForm }) {
                     <span className="mode-stat-value" style={{ fontSize: '0.72rem' }}>{mode.best_carrier}</span>
                   </div>
                 </div>
+                <div className="mode-card-action">
+                  View All Carriers →
+                </div>
               </div>
             )
           })}
@@ -416,7 +524,7 @@ function ResultsView({ plan, shipmentForm }) {
 
       <div className="section-divider" />
 
-      {/* Carrier Alternatives */}
+      {/* Carrier Alternatives with Contact */}
       {plan.carrier_alternatives?.length > 0 && (
         <>
           <div className="section">
@@ -437,6 +545,7 @@ function ResultsView({ plan, shipmentForm }) {
                     <th>Transit</th>
                     <th>Risk</th>
                     <th>Score</th>
+                    <th>Contact</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -450,7 +559,7 @@ function ResultsView({ plan, shipmentForm }) {
                       <td style={{ fontWeight: 600 }}>{c.name}</td>
                       <td className="mono">₹{c.estimated_cost_inr?.toLocaleString()}</td>
                       <td>{c.reliability}%</td>
-                      <td className="mono">{c.transit_days}d</td>
+                      <td className="mono">{c.transit_time_formatted || `${c.transit_days}d`}</td>
                       <td>
                         <span className={`risk-badge ${c.risk_score < 30 ? 'low' : c.risk_score < 60 ? 'medium' : 'high'}`}>
                           {c.risk_score < 30 ? 'Low' : c.risk_score < 60 ? 'Med' : 'High'}
@@ -462,6 +571,11 @@ function ResultsView({ plan, shipmentForm }) {
                           <div className="score-track"><div className={`score-fill ${c.score > 70 ? 'high' : c.score > 40 ? 'medium' : 'low'}`} style={{ width: `${c.score}%` }} /></div>
                         </div>
                       </td>
+                      <td>
+                        <a href={`tel:${c.contact_phone}`} className="btn-contact" title={c.contact_email}>
+                          📞 Contact
+                        </a>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -471,72 +585,6 @@ function ResultsView({ plan, shipmentForm }) {
           <div className="section-divider" />
         </>
       )}
-
-      {/* What-If */}
-      <div className="section">
-        <div className="section-title">What-If Scenario</div>
-        <div className="section-subtitle">Adjust parameters to see how the recommendation changes</div>
-        <div className="card">
-          <div className="whatif-controls">
-            <div className="whatif-slider">
-              <label>
-                <span>Urgency</span>
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{whatIfForm.urgency}</span>
-              </label>
-              <select value={whatIfForm.urgency} onChange={e => setWhatIfForm(f => ({ ...f, urgency: e.target.value }))}>
-                <option value="economy">Economy</option>
-                <option value="standard">Standard</option>
-                <option value="express">Express</option>
-              </select>
-            </div>
-            <div className="whatif-slider">
-              <label>
-                <span>Priority</span>
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{whatIfForm.priority}</span>
-              </label>
-              <select value={whatIfForm.priority} onChange={e => setWhatIfForm(f => ({ ...f, priority: e.target.value }))}>
-                <option value="cost">Lowest Cost</option>
-                <option value="speed">Fastest</option>
-                <option value="reliability">Most Reliable</option>
-                <option value="sustainability">Greenest</option>
-              </select>
-            </div>
-            <div className="whatif-slider">
-              <label>
-                <span>Deadline</span>
-                <span className="mono" style={{ color: 'var(--text)' }}>{whatIfForm.deadline_days} days</span>
-              </label>
-              <input type="range" min="1" max="60" value={whatIfForm.deadline_days} onChange={e => setWhatIfForm(f => ({ ...f, deadline_days: +e.target.value }))} />
-            </div>
-          </div>
-          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={handleWhatIf} disabled={whatIfLoading}>
-              {whatIfLoading ? 'Recomputing...' : 'Simulate Changes →'}
-            </button>
-          </div>
-
-          {whatIfResult && (
-            <div className="whatif-result">
-              <div className="whatif-result-header">
-                <ModeIcon mode={whatIfResult.recommendation.mode} size={24} color={MODE_CONFIG[whatIfResult.recommendation.mode]?.color} />
-                <div>
-                  <div className="whatif-result-title">
-                    {whatIfResult.recommendation.mode === rec.mode ? 'Same recommendation' : `Switched to ${MODE_CONFIG[whatIfResult.recommendation.mode]?.label}`}: {whatIfResult.recommendation.carrier}
-                  </div>
-                  <div className="whatif-result-meta">
-                    Score: {whatIfResult.recommendation.composite_score}/100 ·
-                    Cost: ₹{whatIfResult.recommendation.estimated_cost_inr?.toLocaleString()} ·
-                    Transit: {whatIfResult.recommendation.transit_days}d ·
-                    Risk: {whatIfResult.recommendation.risk_level}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="section-divider" />
 
       {/* Explanation */}
       <div className="section">
@@ -607,10 +655,11 @@ function ResultsView({ plan, shipmentForm }) {
 
 // ─── Main App ────────────────────────────────────────────────────────
 function App() {
-  const [phase, setPhase] = useState('landing')  // landing → input → loading → results
+  const [phase, setPhase] = useState('landing')  // landing → input → loading → results → mode-detail
   const [plan, setPlan] = useState(null)
   const [shipmentForm, setShipmentForm] = useState(null)
   const [loadingStep, setLoadingStep] = useState(0)
+  const [selectedMode, setSelectedMode] = useState(null)
 
   const handleSubmit = async (formData) => {
     setShipmentForm(formData)
@@ -639,16 +688,28 @@ function App() {
     }
   }
 
+  const handleModeClick = (modeData) => {
+    setSelectedMode(modeData)
+    setPhase('mode-detail')
+  }
+
   const handleNewPlan = () => {
     setPhase('input')
     setPlan(null)
     setShipmentForm(null)
+    setSelectedMode(null)
   }
 
   const handleHome = () => {
     setPhase('landing')
     setPlan(null)
     setShipmentForm(null)
+    setSelectedMode(null)
+  }
+
+  const handleBackToResults = () => {
+    setPhase('results')
+    setSelectedMode(null)
   }
 
   // Landing page is full-screen, no topbar
@@ -658,11 +719,25 @@ function App() {
 
   return (
     <>
-      <TopBar onNewPlan={handleNewPlan} onHome={handleHome} hasResults={phase === 'results'} />
+      <TopBar
+        onNewPlan={handleNewPlan}
+        onHome={handleHome}
+        onBack={handleBackToResults}
+        hasResults={phase === 'results'}
+        hasBack={phase === 'mode-detail'}
+      />
       <div className="page-container">
         {phase === 'input' && <ShipmentInput onSubmit={handleSubmit} />}
         {phase === 'loading' && <LoadingAnimation step={loadingStep} />}
-        {phase === 'results' && plan && <ResultsView plan={plan} shipmentForm={shipmentForm} />}
+        {phase === 'results' && plan && <ResultsView plan={plan} shipmentForm={shipmentForm} onModeClick={handleModeClick} />}
+        {phase === 'mode-detail' && selectedMode && plan && (
+          <ModeDetailView
+            modeData={selectedMode}
+            plan={plan}
+            shipmentForm={shipmentForm}
+            onBack={handleBackToResults}
+          />
+        )}
       </div>
     </>
   )

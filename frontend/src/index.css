@@ -1380,6 +1380,87 @@ body {
   color: rgba(255, 255, 255, 0.7);
 }
 
+/* ─── Mode Card Action Hint ────────────────────────────────────────── */
+.mode-card-action {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  transition: color var(--transition);
+}
+
+.mode-compare-card:hover .mode-card-action {
+  color: var(--accent);
+}
+
+/* ─── Contact Button ───────────────────────────────────────────────── */
+.btn-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.btn-contact:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ─── Mode Detail Page ─────────────────────────────────────────────── */
+.mode-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.mode-detail-icon {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.mode-detail-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.mode-detail-route {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.mode-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
 /* ─── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .page-container {
@@ -1392,10 +1473,6 @@ body {
 
   .form-grid {
     grid-template-columns: 1fr;
-  }
-
-  .priority-grid {
-    grid-template-columns: 1fr 1fr;
   }
 
   .mode-comparison-grid {
@@ -1411,8 +1488,13 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 
-  .whatif-controls {
-    grid-template-columns: 1fr;
+  .mode-detail-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mode-detail-header {
+    flex-direction: column;
+    text-align: center;
   }
 
   .route-header {
@@ -1427,5 +1509,14 @@ body {
 
   .hero-ribbon-content h1 {
     font-size: 1.8rem;
+  }
+
+  .carrier-table {
+    font-size: 0.75rem;
+  }
+
+  .carrier-table thead th,
+  .carrier-table tbody td {
+    padding: 10px 8px;
   }
 }
